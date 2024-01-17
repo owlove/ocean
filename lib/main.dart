@@ -3,8 +3,21 @@ import 'package:ocean_app/home_page.dart';
 import 'package:ocean_app/camera_page.dart';
 import 'package:ocean_app/qr_code_page.dart';
 import 'package:ocean_app/gallery_page.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'package:flutter/services.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  SystemChrome.setPreferredOrientations(
+    [
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.portraitUp,
+    ]
+  );
   runApp(MyApp());
 }
 
@@ -57,8 +70,7 @@ class _MyHomePageState extends State<MyApp> {
                 label: "Qr_code",
               ),
             ],
-          )
-        ),
+          )),
     );
   }
 }

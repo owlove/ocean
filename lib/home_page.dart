@@ -1,4 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ocean_app/program_description.dart';
+
+// Класс для формирования данных о программе
+class ProgInfo {
+  final String name;
+  final String description;
+  final String fullDescription;
+
+  const ProgInfo({
+    required this.name,
+    required this.description,
+    required this.fullDescription,
+  });
+
+  static ProgInfo fromJson(Map<String, dynamic> json) => ProgInfo(
+        name: json['name'],
+        description: json['description'],
+        fullDescription: json['fullDescription'],
+      );
+}
+
+class PriceInfo {
+  final String money;
+  final String description;
+
+  const PriceInfo({
+    required this.money,
+    required this.description,
+  });
+
+  static PriceInfo fromJson(Map<String, dynamic> json) => PriceInfo(
+        money: json['money'],
+        description: json['description'],
+      );
+}
+
+// чтение из firebase
+Stream<List<ProgInfo>> readProg() => FirebaseFirestore.instance
+    .collection('ProgID')
+    .snapshots()
+    .map((snapshot) =>
+        snapshot.docs.map((doc) => ProgInfo.fromJson(doc.data())).toList());
+
+Stream<List<PriceInfo>> readPrice() => FirebaseFirestore.instance
+    .collection('PriceID')
+    .snapshots()
+    .map((snapshot) =>
+        snapshot.docs.map((doc) => PriceInfo.fromJson(doc.data())).toList());
 
 class pageOne extends StatelessWidget {
   @override
@@ -27,6 +76,8 @@ Widget _buildBody() {
         _welcomeDescription(),
         _news(),
         _timeTable(),
+        _price(),
+        _contacts(),
       ],
     ),
   );
@@ -68,86 +119,56 @@ Widget _news() {
         ),
         Container(
           height: 210,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              width: 1,
-              color: Color.fromRGBO(0, 92, 157, 1),
-            ),
-          ),
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            itemExtent: 250,
-            children: [
-              ListTile(
-                title: Text(
-                  "Взгляд хищника",
-                  style: TextStyle(
-                      color: Color.fromRGBO(0, 92, 157, 0.9),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20),
-                ),
-                subtitle: Text(
-                  "Познакомьтесь с дервнешими хищниками нашей планеты. Узнайте как появились и выживали первые акулы. Ознакомьтесь с большой коллекцией хищников в нашем океанариуме.",
-                  style: TextStyle(
-                    fontSize: 16,
+          child: StreamBuilder(
+            stream: readProg(),
+            builder: (context, snapshot) {
+              buildProg(ProgInfo prog) => Card(
                     color: Color.fromRGBO(0, 92, 157, 0.9),
-                  ),
-                  textAlign: TextAlign.start,
-                ),
-              ),
-              ListTile(
-                title: Text(
-                  "Морской мир",
-                  style: TextStyle(
-                      color: Color.fromRGBO(0, 92, 157, 0.9),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20),
-                ),
-                subtitle: Text(
-                  "Морские глубины – это дом для огромного количества беспозвоночных животных. Посетите наши занятия и узнайте про особенности уникальных морских существ нашей планеты.",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color.fromRGBO(0, 92, 157, 0.9),
-                  ),
-                  textAlign: TextAlign.start,
-                ),
-              ),
-              ListTile(
-                title: Text(
-                  "Плоские рыбы",
-                  style: TextStyle(
-                      color: Color.fromRGBO(0, 92, 157, 0.9),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20),
-                ),
-                subtitle: Text(
-                  "Скат - неповторимые создания напоминающие плывущее полотно. Узнай все о разнообразии видов, строении тела, месте обитания и других уникальных особенностях этих морских существ.",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color.fromRGBO(0, 92, 157, 0.9),
-                  ),
-                  textAlign: TextAlign.start,
-                ),
-              ),
-              ListTile(
-                title: Text(
-                  "100 км/час",
-                  style: TextStyle(
-                      color: Color.fromRGBO(0, 92, 157, 0.9),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20),
-                ),
-                subtitle: Text(
-                  "Меч-рыба  - это одна из самых быстрых рыб на земле, которая во многом выделяется среди своих сородичей. Узнайте для себя новые удивительные факты из морских глубин в нашем новом научном центре!",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color.fromRGBO(0, 92, 157, 0.9),
-                  ),
-                  textAlign: TextAlign.start,
-                ),
-              ),
-            ],
+                    child: ListTile(
+                      title: Text(
+                        prog.name,
+                        style: TextStyle(
+                          color: Color.fromRGBO(182, 217, 239, 1),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                        textAlign: TextAlign.center
+                      ),
+                      subtitle: Text(
+                        prog.description,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Color.fromRGBO(182, 217, 239, 1),
+                        ),
+                        textAlign: TextAlign.justify,
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProgDetails(prog),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+
+              if (snapshot.hasError) {
+                return Text('Something went wrong! ${snapshot.error}');
+              } else if (snapshot.hasData) {
+                final prog = snapshot.data!;
+
+                return ListView(
+                  scrollDirection: Axis.horizontal,
+                  itemExtent: 250,
+                  children: prog.map(buildProg).toList(),
+                );
+              } else {
+                return Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+            },
           ),
         ),
       ],
@@ -195,5 +216,93 @@ Widget _timeTable() {
         ),
       ],
     ),
+  );
+}
+
+Widget _price() {
+  return ExpansionTile(
+    title: const Text(
+      "Цены:",
+      style: TextStyle(
+        fontSize: 25,
+        color: Color.fromRGBO(0, 92, 157, 1),
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    children: [
+      StreamBuilder(
+        stream: readPrice(),
+        builder: (context, snapshot) {
+          buildPrice(PriceInfo price) => Card(
+                color: Color.fromRGBO(0, 92, 157, 0.9),
+                child: ListTile(
+                  title: Text(
+                    price.description,
+                    style: TextStyle(
+                      color: Color.fromRGBO(182, 217, 239, 1),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                  subtitle: Text(
+                    price.money,
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Color.fromRGBO(182, 217, 239, 1),
+                    ),
+                    textAlign: TextAlign.start,
+                  ),
+                ),
+              );
+
+          if (snapshot.hasError) {
+            return Text('Something went wrong! ${snapshot.error}');
+          } else if (snapshot.hasData) {
+            final price = snapshot.data!;
+
+            return ListView(
+              shrinkWrap: true,
+              children: price.map(buildPrice).toList(),
+            );
+          } else {
+            return Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+        },
+      ),
+    ],
+  );
+}
+
+Widget _contacts() {
+  return ExpansionTile(
+    title: const Text(
+      "Контакты:",
+      style: TextStyle(
+        fontSize: 25,
+        color: Color.fromRGBO(0, 92, 157, 1),
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    children: [
+      Text(
+        "Телефон: +7 908 00 00 404",
+        style: TextStyle(
+            color: Color.fromRGBO(0, 92, 157, 0.9),
+            fontWeight: FontWeight.bold,
+            fontSize: 20),
+      ),
+      Padding(
+        padding: EdgeInsets.only(top: 20, bottom: 5),
+        child: Text(
+          "Адрес: ул. Окулова, д. 3",
+          style: TextStyle(
+              color: Color.fromRGBO(0, 92, 157, 0.9),
+              fontWeight: FontWeight.bold,
+              fontSize: 20),
+        ),
+      ),
+    ],
   );
 }
